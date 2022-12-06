@@ -26,10 +26,14 @@ event_data := data.event[broadcast_data.event_id]
 
 
 delete_permissions := [organizer, speaker, is_owner]
-create_permissions := [organizer, speaker, event_user]
+create_permissions := [organizer, speaker]
+get_permissions := [organizer, speaker, event_user]
 
 organizer {
-	has_key(user_data.organizations, event_data.organization_id)
+	organization := input.organization_id
+	user := input.user_id
+	
+	data.organizations[organization_id].members[user_id].active == true
 }
 
 speaker {
@@ -37,9 +41,9 @@ speaker {
 }
 
 event_user {
-	user_id := input.headers.authorization.user_id
-	has_key(event_data.event_attendees, user_id)
-	event_data.event_attendees[user_id].blocked == false
+	user_id := input.user_id
+	event_id := input.event_id
+	data.events[event_id].members[user_id].blocked == false
 }
 
 is_owner {
@@ -56,12 +60,22 @@ has_delete_permissions {
 	has_permission
 }
 
+has_get_permissions {
+	some has_permission in get_permissions
+	has_permission
+}
 
 
 allow {
 	input.action == "CREATE"
 	input.path == ["text_qna"]
 	has_create_permissions
+}
+
+allow {
+	input.action == "GET"
+	input.path == ["text_qna"]
+	has_get_permissions
 }
 
 allow {
